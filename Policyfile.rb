@@ -14,3 +14,5 @@ run_list 'algo::default'
 
 # Specify a custom source for a single cookbook:
 cookbook 'algo', path: '.'
+cookbook 'apt', '~> 7.3.0', :supermarket
+cookbook 'apparmor', '~> 3.1.0'
