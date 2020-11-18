@@ -1,14 +1,13 @@
 [Interface]
 Address = <%= node['algo']['wireguard']['config']['Interface']['Address'].flatten.join(',') %>
 ListenPort = <%= node['algo']['wireguard']['config']['Interface']['ListenPort'] %>
-PrivateKey = <%= node['algo']['wireguard']['config']['Interface']['PrivateKey'] %>
+PrivateKey = <%= @Interface['PrivateKey'] %>
 SaveConfig = false
 
+<% @Peers.each do |peer| %>
 
 [Peer]
-# {{ u }}
-PublicKey = {{ lookup('file', wireguard_pki_path + '/public/' + u) }}
-PresharedKey = {{ lookup('file', wireguard_pki_path + '/preshared/' + u) }}
-AllowedIPs = {{ wireguard_network_ipv4 | ipmath(index|int+1) | ipv4('address') }}/32{{ ',' + wireguard_network_ipv6 | ipmath(index|int+1) | ipv6('address') + '/128' if ipv6_support else '' }}
-{% endif %}
-{% endfor %}
+# <%= peer['Name'] %>
+PublicKey = <%= peer['PublicKey'] %>
+AllowedIPs = <%= peer['Address'].join(',') %>
+<% end %>

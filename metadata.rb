@@ -21,4 +21,9 @@ chef_version '>= 16.0'
 depends 'apt', '~> 7.3.0'
 depends 'apparmor', '~> 3.1.0'
 
-gem_package 'ipaddress'
+gem 'ipaddress'
+gem 'x25519'
+gem 'base64'
+
+# run before chef
+# apt install build-essential

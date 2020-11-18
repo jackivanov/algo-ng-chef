@@ -17,11 +17,15 @@ default['algo']['dns']['servers'] = {
   ]
 }
 
-default['algo']['dns']['dnscrypt_servers'] = {
-  'ipv4' => [
-    'cloudflare',
-  ],
-  'ipv6' => [
-    'cloudflare-ipv6',
-  ]
+default['algo']['dns']['dnscrypt'] = {
+  'enabled' => true,
+  'servers' => {
+    'ipv4' => [
+      'cloudflare',
+    ],
+    'ipv6' => [
+      'cloudflare-ipv6',
+    ]
+  }
 }
+
