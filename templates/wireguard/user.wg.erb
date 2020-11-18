@@ -1,0 +1,9 @@
+[Interface]
+PrivateKey = <%= @Interface['PrivateKey'] %>
+Address = <%= @Interface['Address'].join(',') %>
+DNS = <%= @Interface['DNS'].join(',') %>
+
+[Peer]
+PublicKey = <%= @Peer['PublicKey'] %>
+Endpoint = <%= @Peer['Endpoint'] %>
+AllowedIPs = 0.0.0.0/0,::/0
