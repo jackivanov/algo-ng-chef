@@ -1,8 +1,8 @@
 # Empty listen_addresses to use systemd socket activation
 listen_addresses = []
 
-<% @ipv4_servers=node['algo']['dns']['dnscrypt_servers']['ipv4'] %>
-<% @ipv6_servers=node['algo']['dns']['dnscrypt_servers']['ipv6'] %>
+<% @ipv4_servers=node['algo']['dns']['dnscrypt']['servers']['ipv4'] %>
+<% @ipv6_servers=node['algo']['dns']['dnscrypt']['servers']['ipv6'] %>
 <% @servers=@ipv4_servers %>
 <% if node['algo']['ipv6'] %> <% @servers=@ipv4_servers + @ipv6_servers %><% end %>
 

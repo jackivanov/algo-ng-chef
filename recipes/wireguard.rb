@@ -1,82 +1,102 @@
-package 'wireguard'
-
-require 'inifile'
 require 'x25519'
 
+package 'wireguard'
+
 #
-# Server Config
+# Generate server private key
 #
 
-wg0_conf = IniFile.load('/etc/wireguard/wg0.conf')
+server_config_dump = '/etc/wireguard/.wg0.json'
+server_config_json = JSON.parse(File.read(server_config_dump)) rescue false
+
 if node['algo']['wireguard']['config']['Interface']['PrivateKey']
-  Server_PrivateKey = node['algo']['wireguard']['config']['Interface']['PrivateKey']
-  Server_PublicKey = Base64.encode64(X25519::Scalar.new(Base64.decode64(Server_PrivateKey)).public_key.to_bytes).chomp
-elsif wg0_conf && wg0_conf['Interface']['PrivateKey']
-  Server_PrivateKey = wg0_conf['Interface']['PrivateKey']
-  Server_PublicKey = Base64.encode64(X25519::Scalar.new(Base64.decode64(Server_PrivateKey)).public_key.to_bytes).chomp
-elsif supplied_key
-  Server_PrivateKey = supplied_key
-  Server_PublicKey = Base64.encode64(X25519::Scalar.new(Base64.decode64(Server_PrivateKey)).public_key.to_bytes).chomp
+  server_privatekey = node['algo']['wireguard']['config']['Interface']['PrivateKey']
+  server_publickey = Base64.encode64(X25519::Scalar.new(Base64.decode64(server_privatekey)).public_key.to_bytes).chomp
+elsif server_config_json && server_config_json['PrivateKey']
+  server_privatekey = server_config_json['PrivateKey']
+  server_publickey = Base64.encode64(X25519::Scalar.new(Base64.decode64(server_privatekey)).public_key.to_bytes).chomp
 else
   generated_key = X25519::Scalar.generate
-  Server_PrivateKey = Base64.encode64(generated_key.to_bytes).chomp
-  Server_PublicKey = Base64.encode64(generated_key.public_key.to_bytes).chomp
+  server_privatekey = Base64.encode64(generated_key.to_bytes).chomp
+  server_publickey = Base64.encode64(generated_key.public_key.to_bytes).chomp
+
+  file server_config_dump do
+    mode '0600'
+    content Chef::JSONCompat.to_json_pretty({
+      'PrivateKey' => server_privatekey,
+      'PublicKey' => server_publickey,
+    })
+  end
 end
 
-Server_Peers = []
-node['algo']['users'].each_with_index do |user, index|
-  configFile = "/etc/wireguard/.#{user}.json"
-  config = JSON.parse(File.read(configFile)) rescue nil
+#
+# Generate users config files
+#
 
-  if !config
+server_peers = []
+node['algo']['users'].each_with_index do |user, index|
+  client_config_file = "/etc/wireguard/.#{user}.json"
+  client_config_json = JSON.parse(File.read(client_config_file)) rescue false
+
+  if !client_config_json
     # Generate random IP using username as the seed for idempotence
     user_uniq_id = user.unpack("B*")[0].to_i(2)
     srand(user_uniq_id)
     term = rand(65534)
 
-    privateKey = X25519::Scalar.generate
-    h = {
+    privatekey = X25519::Scalar.generate
+    client_config_json = {
       'Name' => user,
       'Address' => [
         (IPAddress(IPAddress(node['algo']['wireguard']['ipv4']).to_i + 2 + term)).to_string,
       ],
-      'PrivateKey' => Base64.encode64(privateKey.to_bytes).chomp,
-      'PublicKey' => Base64.encode64(privateKey.public_key.to_bytes).chomp,
+      'PrivateKey' => Base64.encode64(privatekey.to_bytes).chomp,
+      'PublicKey' => Base64.encode64(privatekey.public_key.to_bytes).chomp,
     }
 
-    Server_Peers += [h]
-
-    file configFile do
-      content Chef::JSONCompat.to_json_pretty(h)
+    file client_config_file do
+      content Chef::JSONCompat.to_json_pretty(client_config_json)
+      mode '0600'
     end
-  else
-    Server_Peers += [config]
   end
-end
 
-template '/etc/wireguard/wg0.conf' do
-  source 'wireguard/wg0.conf.erb'
-  variables(
-    :Interface => {
-      'PrivateKey' => Server_PrivateKey
-    },
-    :Peers => Server_Peers
-  )
-end
+  server_peers += [client_config_json]
 
-Server_Peers.each do |peer|
-  template "/etc/wireguard/.#{peer['Name']}.conf" do
+  template "/etc/wireguard/.wg0.#{user}.conf" do
     source 'wireguard/user.wg.erb'
+    mode '0600'
     variables(
       :Interface => {
-        'PrivateKey' => peer['PrivateKey'],
-        'Address' => peer['Address'],
-        'DNS' => node['algo']['dns']['dnscrypt']['enabled'] ? node['algo']['dns']['servers']['ipv4'] : node['algo']['wireguard']['config']['Interface']['Address']
+        'PrivateKey' => client_config_json['PrivateKey'],
+        'Address' => client_config_json['Address'],
+        'DNS' => node['algo']['dns']['dnscrypt']['enabled'] ? 
+          node['algo']['wireguard']['config']['Interface']['Address'] : 
+          node['algo']['dns']['servers']['ipv4']
       },
       :Peer => {
-        'PublicKey' => Server_PublicKey,
-        'Endpoint' => node['algo']['wireguard']['config']['Interface']['Address'][0]
+        'PublicKey' => server_publickey,
+        'Endpoint' => node['algo']['common']['endpoint']
       }
     )
   end
+end
+
+#
+# Generate server config file
+#
+
+template '/etc/wireguard/wg0.conf' do
+  source 'wireguard/wg0.conf.erb'
+  mode '0600'
+  variables(
+    :Interface => {
+      'PrivateKey' => server_privatekey
+    },
+    :Peers => server_peers
+  )
+  notifies :restart, 'service[wg-quick@wg0]', :immediately
+end
+
+service 'wg-quick@wg0' do
+  action [ :enable, :start ]
 end

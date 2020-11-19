@@ -18,3 +18,5 @@ default['algo']['users'] = [
   'laptop',
   'desktop',
 ]
+
+default['algo']['common']['endpoint'] = '8.8.8.8'

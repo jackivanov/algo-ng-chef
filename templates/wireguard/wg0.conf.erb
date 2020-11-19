@@ -1,5 +1,5 @@
 [Interface]
-Address = <%= node['algo']['wireguard']['config']['Interface']['Address'].flatten.join(',') %>
+Address = <%= node['algo']['wireguard']['ipv4'] %>,<%= node['algo']['wireguard']['ipv6'] %>
 ListenPort = <%= node['algo']['wireguard']['config']['Interface']['ListenPort'] %>
 PrivateKey = <%= @Interface['PrivateKey'] %>
 SaveConfig = false
