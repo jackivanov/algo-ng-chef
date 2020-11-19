@@ -1,4 +1,4 @@
-name: delivery
+name: Main
 
 on: [push, pull_request]
 
@@ -10,6 +10,3 @@ jobs:
       uses: actions/checkout@master
     - name: install chef
       uses: actionshub/chef-install@master
-      with:
-        channel: stable
-        version: 16.6.14
