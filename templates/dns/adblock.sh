@@ -13,7 +13,7 @@ rm -f $BLOCKHOSTS
 
 echo 'Downloading hosts lists...'
 #Download and process the files needed to make the lists (enable/add more, if you want)
-while read url; do
+while read -r url; do
   wget --timeout=2 --tries=3 -qO- "$url" | grep -Ev "(localhost)" | grep -Ew "(0.0.0.0|127.0.0.1)" | awk '{sub(/\r$/,"");print $2}'  >> "$TEMP"
 done < $BLOCKLIST_URLS
 
