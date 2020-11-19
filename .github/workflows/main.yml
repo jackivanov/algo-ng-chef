@@ -3,10 +3,12 @@ name: Main
 on: [push, pull_request]
 
 jobs:
-  delivery:
+  chef-install:
     runs-on: ubuntu-latest
     steps:
-    - name: Check out code
-      uses: actions/checkout@master
-    - name: install chef
-      uses: actionshub/chef-install@master
+      - name: Check out code
+        uses: actions/checkout@master
+      - name: install chef
+        uses: actionshub/chef-install@master
+      - name: Debug
+        run: chef -v
