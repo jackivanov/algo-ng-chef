@@ -9,5 +9,5 @@ SaveConfig = false
 [Peer]
 # <%= peer['Name'] %>
 PublicKey = <%= peer['PublicKey'] %>
-AllowedIPs = <%= peer['Address'].join(',') %>
+AllowedIPs = <%= peer['Address'].map { |ip| IPAddress(ip).to_s }.join(",") %>
 <% end %>

@@ -1,0 +1,11 @@
+[Socket]
+FreeBind=yes
+
+# IPv4
+ListenDatagram=<%= IPAddress(node['algo']['wireguard']['ipv4']).to_s %>:53
+ListenStream=<%= IPAddress(node['algo']['wireguard']['ipv4']).to_s %>:53
+
+# IPv6
+ListenDatagram=[<%= IPAddress(node['algo']['wireguard']['ipv6']).to_s %>]:53
+ListenStream=[<%= IPAddress(node['algo']['wireguard']['ipv6']).to_s %>]:53
+

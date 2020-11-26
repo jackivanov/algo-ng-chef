@@ -1,12 +1,15 @@
 require 'x25519'
 
-package 'wireguard'
+package %w(wireguard qrencode)
+directory '/etc/wireguard/pki/' do
+  mode '0700'
+end
 
 #
 # Generate server private key
 #
 
-server_config_dump = '/etc/wireguard/.wg0.json'
+server_config_dump = '/etc/wireguard/pki/.wg0.json'
 server_config_json = JSON.parse(File.read(server_config_dump)) rescue false
 
 if node['algo']['wireguard']['config']['Interface']['PrivateKey']
@@ -35,7 +38,7 @@ end
 
 server_peers = []
 node['algo']['users'].each_with_index do |user, index|
-  client_config_file = "/etc/wireguard/.#{user}.json"
+  client_config_file = "/etc/wireguard/pki/.#{user}.json"
   client_config_json = JSON.parse(File.read(client_config_file)) rescue false
 
   if !client_config_json
@@ -45,10 +48,11 @@ node['algo']['users'].each_with_index do |user, index|
     term = rand(65534)
 
     privatekey = X25519::Scalar.generate
+    ipv4 = IPAddress(node['algo']['wireguard']['ipv4'])
     client_config_json = {
       'Name' => user,
       'Address' => [
-        (IPAddress(IPAddress(node['algo']['wireguard']['ipv4']).to_i + 2 + term)).to_string,
+        "#{(IPAddress(ipv4.to_i + 2 + term)).to_s}/#{ipv4.prefix}",
       ],
       'PrivateKey' => Base64.encode64(privatekey.to_bytes).chomp,
       'PublicKey' => Base64.encode64(privatekey.public_key.to_bytes).chomp,
@@ -62,7 +66,7 @@ node['algo']['users'].each_with_index do |user, index|
 
   server_peers += [client_config_json]
 
-  template "/etc/wireguard/.wg0.#{user}.conf" do
+  template "/etc/wireguard/pki/wg0.#{user}.conf" do
     source 'wireguard/user.wg.erb'
     mode '0600'
     variables(
@@ -75,9 +79,18 @@ node['algo']['users'].each_with_index do |user, index|
       },
       :Peer => {
         'PublicKey' => server_publickey,
-        'Endpoint' => node['algo']['common']['endpoint']
+        'Endpoint' => "#{node['algo']['common']['endpoint']}:#{node['algo']['wireguard']['config']['Interface']['ListenPort']}"
       }
     )
+  end
+
+  %w(ansiutf8 png).each do |type|
+    execute "qrencode #{type}" do
+      command "/usr/bin/qrencode -t #{type} -r wg0.#{user}.conf -o wg0.#{user}.qr.#{type}"
+      creates "wg0.#{user}.qr.#{type}"
+      cwd '/etc/wireguard/pki/'
+      umask '077'
+    end
   end
 end
 

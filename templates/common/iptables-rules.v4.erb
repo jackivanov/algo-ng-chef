@@ -1,0 +1,110 @@
+<% subnets = node['algo']['wireguard']['enabled'] ? [IPAddress(node['algo']['wireguard']['ipv4']).network.to_string] : [] %>
+
+<% _ports = [] %>
+<% _ports += node['algo']['wireguard']['enabled'] ? [node['algo']['wireguard']['exposed_port']] : [nil] %>
+<% _ports += node['algo']['wireguard']['enabled'] && node['algo']['wireguard']['exposed_port'] != node['algo']['wireguard']['config']['ListenPort'] ? [node['algo']['wireguard']['config']['ListenPort']] : [nil] %>
+<% ports = _ports.compact %>
+
+#### The mangle table
+# This table allows us to modify packet headers
+# Packets enter this table first
+#
+*mangle
+
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+
+COMMIT
+
+
+#### The nat table
+# This table enables Network Address Translation
+# (This is technically a type of packet mangling)
+#
+*nat
+
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+<% if node['algo']['wireguard']['enabled'] %>
+<% if node['algo']['wireguard']['exposed_port'] != node['algo']['wireguard']['config']['ListenPort'] %>
+# Handle the special case of allowing access to WireGuard over an already used
+# port like 53
+-A PREROUTING -s <%= subnets.join(',') %> -p udp --dport <%= node['algo']['wireguard']['exposed_port'] %> -j RETURN
+-A PREROUTING -i <%= node['network']['default_interface'] %> -p udp --dport <%= node['algo']['wireguard']['exposed_port'] %> -j REDIRECT --to-port <%= node['algo']['wireguard']['config']['Interface']['ListenPort'] %>
+<% end %>
+<% end %>
+
+# Allow traffic from the VPN network to the outside world, and replies
+-A POSTROUTING -s <%= subnets.join(',') %> -m policy --pol none --dir out -j MASQUERADE
+
+
+COMMIT
+
+
+#### The filter table
+# The default ipfilter table
+#
+*filter
+
+# By default, drop packets that are destined for this server
+:INPUT DROP [0:0]
+# By default, drop packets that request to be forwarded by this server
+:FORWARD DROP [0:0]
+# By default, accept any packets originating from this server
+:OUTPUT ACCEPT [0:0]
+
+# Accept packets destined for localhost
+-A INPUT -i lo -j ACCEPT
+
+# Accept any packet from an open TCP connection
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Accept packets using the encapsulation protocol
+-A INPUT -p esp -j ACCEPT
+-A INPUT -p ah -j ACCEPT
+
+# rate limit ICMP traffic per source
+-A INPUT -p icmp --icmp-type echo-request -m hashlimit --hashlimit-upto 5/s --hashlimit-mode srcip --hashlimit-srcmask 32 --hashlimit-name icmp-echo-drop -j ACCEPT
+
+# Accept IPSEC/WireGuard traffic
+-A INPUT -p udp -m multiport --dports <%= ports.join(',') %> -j ACCEPT
+
+# Allow new traffic to SSH port
+-A INPUT -p tcp --dport <%= node['algo']['common']['ssh_port'] %> -m conntrack --ctstate NEW -j ACCEPT
+
+# Accept DNS traffic to the local DNS resolver
+-A INPUT -d <%= IPAddress(node['algo']['wireguard']['ipv4']).first.address %> -p udp --dport 53 -j ACCEPT
+
+# Drop traffic between VPN clients
+-A FORWARD -s <%= subnets.join(',') %> -d <%= subnets.join(',') %> -j <%= node['algo']['common']['client_to_client'] ? 'DROP' : 'ACCEPT' %>
+
+# Drop traffic to VPN clients from SSH tunnels
+-A OUTPUT -d <%= subnets.join(',') %> -m owner --gid-owner 15000 -j <%= node['algo']['common']['client_to_client'] ? 'DROP' : 'ACCEPT' %>
+
+# Drop traffic to the link-local network
+-A FORWARD -s <%= subnets.join(',') %> -d 169.254.0.0/16 -j DROP
+
+# Drop traffic to the link-local network from SSH tunnels
+-A OUTPUT -d 169.254.0.0/16 -m owner --gid-owner 15000 -j DROP
+
+# Forward any packet that's part of an established connection
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Drop SMB/CIFS traffic that requests to be forwarded
+-A FORWARD -p tcp --dport 445 -j <%= node['algo']['common']['block_smb'] ? 'DROP' : 'ACCEPT' %>
+
+# Drop NETBIOS trafic that requests to be forwarded
+-A FORWARD -p udp -m multiport --ports 137,138 -j <%= node['algo']['common']['block_netbios'] ? 'DROP' : 'ACCEPT' %>
+-A FORWARD -p tcp -m multiport --ports 137,139 -j <%= node['algo']['common']['block_netbios'] ? 'DROP' : 'ACCEPT' %>
+
+<% if node['algo']['wireguard']['enabled'] %>
+# Forward any traffic from the WireGuard VPN network
+-A FORWARD -m conntrack --ctstate NEW -s <%= IPAddress(node['algo']['wireguard']['ipv4']).network.to_string %> -m policy --pol none --dir in -j ACCEPT
+<% end %>
+
+COMMIT
