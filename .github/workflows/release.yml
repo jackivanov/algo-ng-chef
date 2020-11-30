@@ -23,9 +23,9 @@ jobs:
       - name: Chef archive
         run: |
           mkdir /tmp/export
-          ARCHIVE=$(chef export -aD Policyfile.rb /tmp/export | awk '{print $5}')
-          mv "$ARCHIVE" ./algo.tgz
-          
+          chef export -aD Policyfile.rb /tmp/export
+          mv "$(chef export -aD Policyfile.rb /tmp/export | awk '{print $5}')" ./algo.tgz
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
