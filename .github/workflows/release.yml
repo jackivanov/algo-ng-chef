@@ -52,27 +52,3 @@ jobs:
           asset_path: ./algo.tgz
           asset_name: algo.tgz
           asset_content_type: application/gzip
-
-      # Latest release override
-
-      - name: Create Release
-        id: create_release_latest
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release Latest
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset-latest
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release_latest.outputs.upload_url }}
-          asset_path: ./algo.tgz
-          asset_name: algo.tgz
-          asset_content_type: application/gzip
