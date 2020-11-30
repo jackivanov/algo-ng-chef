@@ -17,8 +17,8 @@ jobs:
       - name: Chef version
         run: chef -v
 
-      # - name: Run chef install
-      #   run: chef install
+      - name: Run chef install
+        run: chef install
 
       - name: Chef archive
         run: |
