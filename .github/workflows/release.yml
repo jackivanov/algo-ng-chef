@@ -18,7 +18,7 @@ jobs:
       - name: Install Chef
         run: |
           wget https://packages.chef.io/files/stable/chef-workstation/20.11.180/ubuntu/20.04/chef-workstation_20.11.180-1_amd64.deb -O chef.deb
-          dpkg -i chef.deb
+          sudo dpkg -i chef.deb
           chef -v
 
       - name: Run chef install
