@@ -6,7 +6,8 @@ on:
       - 'v*'
 
 env:
-  CHEF_LICENSE: accept-silent
+  CHEF_LICENSE: "accept-silent"
+  CHEF_URL: "https://packages.chef.io/files/stable/chef-workstation/20.11.180/ubuntu/20.04/chef-workstation_20.11.180-1_amd64.deb"
 
 jobs:
   release:
@@ -15,9 +16,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Install Chef
         run: |
-          wget https://packages.chef.io/files/stable/chef-workstation/20.11.180/ubuntu/20.04/chef-workstation_20.11.180-1_amd64.deb -O chef.deb
+          wget "$CHEF_URL" -O chef.deb
           sudo dpkg -i chef.deb
           chef -v
 
@@ -48,5 +50,29 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./algo.tgz
-          asset_name: algo-${{ github.ref }}.tgz
+          asset_name: algo.tgz
+          asset_content_type: application/gzip
+
+      # Latest release override
+
+      - name: Create Release
+        id: create_release_latest
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release Latest
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset-latest
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release_latest.outputs.upload_url }}
+          asset_path: ./algo.tgz
+          asset_name: algo.tgz
           asset_content_type: application/gzip
