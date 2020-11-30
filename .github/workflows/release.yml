@@ -5,25 +5,28 @@ on:
     tags:
       - 'v*'
 
+env:
+  CHEF_LICENSE: accept-silent
+
 jobs:
   release:
     name: Create Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install Chef
-        uses: actionshub/chef-install@master
-      - name: Chef version
-        run: chef -v
+        run: |
+          wget https://packages.chef.io/files/stable/chef-workstation/20.11.180/ubuntu/20.04/chef-workstation_20.11.180-1_amd64.deb -O chef.deb
+          dpkg -i chef.deb
+          chef -v
 
       - name: Run chef install
         run: chef install
 
-      - name: Chef archive
+      - name: Chef export archive
         run: |
           mkdir /tmp/export
-          chef export -aD Policyfile.rb /tmp/export
           mv "$(chef export -aD Policyfile.rb /tmp/export | awk '{print $5}')" ./algo.tgz
 
       - name: Create Release
