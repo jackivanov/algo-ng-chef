@@ -1,36 +1,6 @@
 require 'x25519'
 
 package %w(wireguard qrencode)
-directory '/etc/wireguard/pki/' do
-  mode '0700'
-end
-
-#
-# Generate server private key
-#
-
-server_config_dump = '/etc/wireguard/pki/.wg0.json'
-server_config_json = JSON.parse(File.read(server_config_dump)) rescue false
-
-if node['algo']['wireguard']['config']['Interface']['PrivateKey']
-  server_privatekey = node['algo']['wireguard']['config']['Interface']['PrivateKey']
-  server_publickey = Base64.encode64(X25519::Scalar.new(Base64.decode64(server_privatekey)).public_key.to_bytes).chomp
-elsif server_config_json && server_config_json['PrivateKey']
-  server_privatekey = server_config_json['PrivateKey']
-  server_publickey = Base64.encode64(X25519::Scalar.new(Base64.decode64(server_privatekey)).public_key.to_bytes).chomp
-else
-  generated_key = X25519::Scalar.generate
-  server_privatekey = Base64.encode64(generated_key.to_bytes).chomp
-  server_publickey = Base64.encode64(generated_key.public_key.to_bytes).chomp
-
-  file server_config_dump do
-    mode '0600'
-    content Chef::JSONCompat.to_json_pretty({
-      'PrivateKey' => server_privatekey,
-      'PublicKey' => server_publickey,
-    })
-  end
-end
 
 #
 # Generate users config files

@@ -6,4 +6,4 @@
 
 include_recipe 'algo::common'
 include_recipe 'algo::dns'
-include_recipe 'algo::wireguard'
+# include_recipe 'algo::wireguard'
