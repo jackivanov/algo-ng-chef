@@ -5,10 +5,6 @@ on:
     branches:
       - master
 
-env:
-  CHEF_LICENSE: "accept-silent"
-  CHEF_URL: "https://packages.chef.io/files/stable/chef-workstation/20.11.180/ubuntu/20.04/chef-workstation_20.11.180-1_amd64.deb"
-
 jobs:
   chef-install:
     runs-on: ubuntu-latest
@@ -21,54 +17,3 @@ jobs:
 
       - name: Debug
         run: chef -v
-
-  release:
-    name: Create Release
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install Chef
-        run: |
-          wget "$CHEF_URL" -O chef.deb
-          sudo dpkg -i chef.deb
-          chef -v
-
-      - name: Run chef install
-        run: chef install
-
-      - name: Chef export archive
-        run: |
-          mkdir /tmp/export
-          mv "$(chef export -aD Policyfile.rb /tmp/export | awk '{print $5}')" ./algo.tgz
-
-      - name: Get metadata version
-        id: metadata-version
-        run: |
-          COOKBOOK_VERSION=$(grep ^version metadata.rb | awk '{print $2}' | cut -f2 -d\')
-          if [[ $COOKBOOK_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo ::set-output name=COOKBOOK_VERSION::$COOKBOOK_VERSION
-          fi
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.metadata-version.outputs.COOKBOOK_VERSION }}
-          release_name: v${{ steps.metadata-version.outputs.COOKBOOK_VERSION }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./algo.tgz
-          asset_name: algo.tgz
-          asset_content_type: application/gzip
