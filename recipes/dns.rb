@@ -36,7 +36,7 @@ template '/usr/local/bin/adblock.sh' do
 end
 
 file '/etc/dnscrypt-proxy/adblock-urls' do
-  content node['algo']['dns']['adblock']['urls']
+  content node['algo']['dns']['adblock']['urls'].join("\n")
   notifies :run, 'execute[adblock]', :immediately
 end
 

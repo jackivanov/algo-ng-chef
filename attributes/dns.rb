@@ -1,9 +1,9 @@
 default['algo']['dns']['adblock'] = {
   'enabled' => true,
-  'urls' => <<-EOF
-    https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-    https://hosts-file.net/ad_servers.txt
-  EOF
+  'urls' => [
+    'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts',
+    'https://hosts-file.net/ad_servers.txt',
+  ]
 }
 
 default['algo']['dns']['servers'] = {

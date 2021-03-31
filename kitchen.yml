@@ -4,6 +4,7 @@ driver:
   region: eu-west-1
   instance_type: t3.micro
   user_data: kitchen/user-data.yml
+  instance_initiated_shutdown_behavior: terminate
 
 provisioner:
   name: chef_zero
