@@ -7,6 +7,7 @@ default['algo']['wireguard'] = {
 }
 
 default['algo']['wireguard']['config'] = {
+  'ServerAddress' => 'localhost',
   'Interface' => {
     'Address' => [
       IPAddress(node['algo']['wireguard']['ipv4']).first.address,

@@ -19,7 +19,6 @@ default['algo']['users'] = [
   'desktop',
 ]
 
-default['algo']['common']['endpoint'] = 'localhost'
 default['algo']['common']['ssh_port'] = 22
 default['algo']['common']['client_to_client'] = false
 default['algo']['common']['block_smb'] = true

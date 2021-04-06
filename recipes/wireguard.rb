@@ -83,7 +83,7 @@ node['algo']['users'].each_with_index do |user, index|
       },
       :Peer => {
         'PublicKey' => server_publickey,
-        'Endpoint' => "#{node['algo']['common']['endpoint']}:#{node['algo']['wireguard']['config']['Interface']['ListenPort']}"
+        'Endpoint' => "#{node['algo']['wireguard']['config']['ServerAddress']}:#{node['algo']['wireguard']['config']['Interface']['ListenPort']}"
       }
     )
   end
