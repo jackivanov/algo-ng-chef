@@ -6,7 +6,7 @@ listen_addresses = []
 <% @servers=@ipv4_servers %>
 <% if node['algo']['ipv6'] %> <% @servers=@ipv4_servers + @ipv6_servers %><% end %>
 
-server_names = ['<%= @servers.join(',') %>']
+server_names = <%= @servers.to_json %>
 
 max_clients = 250
 ipv4_servers = true
