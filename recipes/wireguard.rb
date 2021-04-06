@@ -91,9 +91,10 @@ node['algo']['users'].each_with_index do |user, index|
   %w(ansiutf8 png).each do |type|
     execute "qrencode #{type}" do
       command "/usr/bin/qrencode -t #{type} -r wg0.#{user}.conf -o wg0.#{user}.qr.#{type}"
-      creates "wg0.#{user}.qr.#{type}"
       cwd '/etc/wireguard/pki/'
       umask '077'
+      sensitive ENV['TEST_KITCHEN'] ? true : false
+      subscribes :run, "template[/etc/wireguard/pki/wg0.#{user}.conf]", :immediately
     end
   end
 end
