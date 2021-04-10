@@ -26,7 +26,7 @@ else
 
   file server_config_dump do
     mode '0600'
-    sensitive ENV['TEST_KITCHEN'] ? true : false
+    sensitive ENV['TEST_KITCHEN'] ? false : true
     content Chef::JSONCompat.to_json_pretty({
       'PrivateKey' => server_privatekey,
       'PublicKey' => server_publickey,
@@ -62,7 +62,7 @@ node['algo']['users'].each_with_index do |user, index|
 
     file client_config_file do
       content Chef::JSONCompat.to_json_pretty(client_config_json)
-      sensitive ENV['TEST_KITCHEN'] ? true : false
+      sensitive ENV['TEST_KITCHEN'] ? false : true
       mode '0600'
     end
   end
@@ -71,7 +71,7 @@ node['algo']['users'].each_with_index do |user, index|
 
   template "/etc/wireguard/pki/wg0.#{user}.conf" do
     source 'wireguard/user.wg.erb'
-    sensitive ENV['TEST_KITCHEN'] ? true : false
+    sensitive ENV['TEST_KITCHEN'] ? false : true
     mode '0600'
     variables(
       :Interface => {
@@ -93,7 +93,6 @@ node['algo']['users'].each_with_index do |user, index|
       command "/usr/bin/qrencode -t #{type} -r wg0.#{user}.conf -o wg0.#{user}.qr.#{type}"
       cwd '/etc/wireguard/pki/'
       umask '077'
-      sensitive ENV['TEST_KITCHEN'] ? true : false
       subscribes :run, "template[/etc/wireguard/pki/wg0.#{user}.conf]", :immediately
     end
   end
@@ -105,7 +104,7 @@ end
 
 template '/etc/wireguard/wg0.conf' do
   source 'wireguard/wg0.conf.erb'
-  sensitive ENV['TEST_KITCHEN'] ? true : false
+  sensitive ENV['TEST_KITCHEN'] ? false : true
   mode '0600'
   variables(
     :Interface => {
